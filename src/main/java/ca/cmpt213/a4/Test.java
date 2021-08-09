@@ -1,5 +1,6 @@
 package ca.cmpt213.a4;
 
+import ca.cmpt213.a4.control.Helper;
 import ca.cmpt213.a4.control.Load;
 import ca.cmpt213.a4.control.Save;
 import ca.cmpt213.a4.model.Task;
@@ -11,9 +12,10 @@ import javax.swing.event.ListSelectionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Test extends JFrame{
-    private JPanel Home;
+    private JPanel basePanel;
     private JPanel top;
     private JPanel left;
     private JPanel right;
@@ -33,33 +35,43 @@ public class Test extends JFrame{
     private JButton setTrue;
     private JButton setFalse;
     private JLabel textCompleted;
-    private JButton makeRandom;
     private DateTimePicker setDateField;
+    private JButton removeTask;
+    private JButton addRandoTask;
+    private JLabel notice;
     private ArrayList<Task> tasks;
+    private ArrayList<Task> tempTasks;
     private DefaultListModel listTaskModel;
-    Test(){
-        super("Tasks Project");
-        this.setContentPane(this.Home);
+    private String modeSelected;
+
+    Test() {
+
+        super("Task Project");
+        this.setContentPane(this.basePanel);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.pack();
         tasks = Load.loadTasks();
+        tempTasks = tasks;
+        System.out.println("tasks size: "+ tasks.size());
         listTaskModel = new DefaultListModel();
+        modeSelected = "all";
+        refreshTasks();
+        //listTaskModel.addElement("wtf");
         taskList.setModel(listTaskModel);
-        for (Task t:tasks
-             ) {
-            System.out.println("loaded");
-            t.printSelf();
-        }
 
-        SaveExisting.addActionListener(new ActionListener() {
+
+        taskList.addListSelectionListener(new ListSelectionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void valueChanged(ListSelectionEvent e) {
+                notice.setText("");
                 int i = taskList.getSelectedIndex();
                 if(i >= 0){
-                    Task t = tasks.get(i);
-                    t.setName(textName.getText());
-                    t.setNotes(textNotes.getText());
-                    t.setDateTime(setDateField.getDateTimeStrict().toString());
+                    Task t = tempTasks.get(i);
+                    textName.setText(t.getName());
+                    textNotes.setText(t.getNotes());
+                    textDate.setText(t.getDateTime());
+                    textCompleted.setText(t.getCompletedAsString());
+
                 }
 
             }
@@ -68,45 +80,159 @@ public class Test extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
 
+               int i = 1;
+                String name = textName.getText();
+                if(name.length() < 1){
+                    notice.setText("Notice: Please Enter a Name");
+                    i = -1;
+                }
+                if(setDateField.getDateTimeStrict()==null){
+                    notice.setText("Notice: Please Select a Date");
+                    i = -1;
+                }
+                if(i>0){
+                Task t = new Task(textName.getText(), textNotes.getText(),setDateField.getDateTimeStrict().toString(), Helper.toBool(completedField.getText()));
+                tasks.add(t);
+                refreshTasks();}
+            }
+
+        });
+
+        SaveExisting.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+
+                int i = 1;
+                String name = textName.getText();
+                if(name.length() < 1){
+                    notice.setText("Notice: Please Enter a Name");
+                    i = -1;
+                }
+                if(setDateField.getDateTimeStrict()==null){
+                    notice.setText("Notice: Please Select a Date");
+                    i = -1;
+                }
+                i = taskList.getSelectedIndex();
+                if(i >= 0){
+                    Task t = tempTasks.get(i);
+                    t.setName(textName.getText());
+                    t.setNotes(textNotes.getText());
+                    t.setDateTime(setDateField.getDateTimeStrict().toString());
+                    tempTasks.set(i,t);
+                }
+                refreshTasks();
             }
         });
-        taskList.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                int i = taskList.getSelectedIndex();
-                if(i >= 0){
-                    Task t = tasks.get(i);
-                    textName.setText(t.getName());
-                    textNotes.setText(t.getNotes());
-                    textDate.setText(t.getDateTime());
-                    textCompleted.setText(t.getCompletedAsString());
+        removeTask.addActionListener(new ActionListener() {
 
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notice.setText("");
+                int i = taskList.getSelectedIndex();
+                if(i >= 0) {
+                    tasks.remove(i);
+                    refreshTasks();
                 }
             }
         });
         setFalse.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                notice.setText("");
+                int i = taskList.getSelectedIndex();
+                if(i >= 0) {
+                    textCompleted.setText("false");
+                    Task t = tempTasks.get(i);
+                    t.setCompleted(false);
+                    tempTasks.set(i,t);
+                }
+                refreshTasks();
             }
         });
         setTrue.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                notice.setText("");
+                int i = taskList.getSelectedIndex();
+                if(i >= 0) {
+                    textCompleted.setText("true");
+                    Task t = tempTasks.get(i);
+                    t.setCompleted(true);
+                    tempTasks.set(i,t);
+                }
+                refreshTasks();
+            }
+        });
+        ViewUpcoming.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notice.setText("");
+                modeSelected = "overdue";
+                refreshTasks();
+            }
+        });
+        ViewAll.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notice.setText("");
+                modeSelected = "all";
+                refreshTasks();
+            }
+        });
+        ViewOverDue.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notice.setText("");
+                modeSelected = "upcoming";
+                refreshTasks();
+            }
+        });
+        addRandoTask.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                notice.setText("");
+                tasks.add(Helper.makeRandTask());
+                refreshTasks();
             }
         });
     }
-    public void refreshTaskList(){
+    public void refreshTasks(){
+        Collections.sort(tasks);
+
         listTaskModel.removeAllElements();
-        for (Task t: tasks
-             ) {
-            listTaskModel.addElement(t.getName());
+        if(modeSelected.equals("all")) {
+            tempTasks = tasks;
+            for (Task t : tasks
+            ) {
+                listTaskModel.addElement(t.getName());
+            }
         }
-        //Save.saveTask(tasks);
+        if(modeSelected.equals("overdue")){
+            ArrayList<Task> overDue = Helper.getOverdue(tasks);
+            tempTasks = overDue;
+            for (Task t : overDue
+            ) {
+                if(!t.isCompleted()) {
+                    listTaskModel.addElement(t.getName());
+                }
+            }
+
+        }
+        if(modeSelected.equals("upcoming")){
+            ArrayList<Task> upcoming = Helper.getUpcoming(tasks);
+            tempTasks = upcoming;
+            for (Task t : upcoming
+            ) {
+                if(!t.isCompleted()) {
+                    listTaskModel.addElement(t.getName());
+                }
+
+            }
+
+
+        }
+
+        Save.saveTask(tasks);
     }
-    public void addTask(Task t){
-        tasks.add(t);
-        refreshTaskList();
-    }
+
 }

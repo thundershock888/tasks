@@ -3,11 +3,10 @@ import com.github.lgooddatepicker.components.DateTimePicker;
 
 import java.util.GregorianCalendar;
 
-public class Task{
+public class Task implements Comparable<Task>{
 	private String name;
 	private String notes;
 	String dateTime;
-
 	private boolean completed;
 
 	public Task(String name, String notes, String dateTime, boolean completed) {
@@ -67,5 +66,21 @@ public class Task{
 
 	public void setCompleted(boolean completed) {
 		this.completed = completed;
+	}
+
+
+
+
+	@Override
+	public int compareTo(Task o) {
+		long a = Long.parseLong(o.getDateTime().replaceAll("[^\\d.]", ""));
+		long b = Long.parseLong(this.getDateTime().replaceAll("[^\\d.]", ""));
+		if(a>b){
+			return -1;
+		}
+		if(b>a){
+			return 1;
+		}
+		return 0;
 	}
 }
